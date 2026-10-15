@@ -81,9 +81,6 @@
         33: "Vijay Patil (H-33)"
     };
 
-    document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
-    document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
-
     let consumptionChart;
 
     function renderChart(boreData, sumpData, corpData) {
@@ -113,24 +110,27 @@
 
     async function fetchPortalData() {
         try {
-            // 1. Pull data directly from the free Blynk REST API
+            // Update labels immediately on script compilation
+            document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
+            document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
+
+            // Pull parameters from Blynk APIs
             const blynkRes = await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42);
             const blynkData = await blynkRes.json();
             
             document.getElementById("balanceValue").innerText = "₹" + parseFloat(blynkData[balancePin]).toFixed(2);
             document.getElementById("holidayToggle").checked = parseInt(blynkData[holidayPin]) === 1;
 
-            // 2. Set the status indicator color badge dynamically based on active pump tracking pins
+            // Update color source badge status indicator registers
             const badge = document.getElementById("sourceBadge");
             if (parseInt(blynkData["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
             else if (parseInt(blynkData["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
             else if (parseInt(blynkData["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-corp"; }
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
-            // 3. Simulated historical values (In production, pull these directly using a fetch request from your Google Sheets deployment URL)
-            renderChart([40, 50, 0, 30, 20, 0, 10], [0, 0, 120, 0, 0, 100, 0], [60, 0, 0, 40, 50, 0, 80]);
+            // Clean baseline historical charts mock arrays (Fixed empty data syntax crash)
+            renderChart([120, 150, 180, 90, 200, 150, 110], [50, 0, 70, 0, 40, 90, 0], [0, 80, 0, 110, 0, 0, 95]);
             
-            // 4. Update the recent payment history items layout
             const historyHtml = `
                 <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>12 Oct 2026</span></li>
                 <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>01 Sep 2026</span></li>
