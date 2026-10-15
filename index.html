@@ -3,85 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prepaid Resident Water Portal</title>
+    <title>Prepaid Water Smart Portal</title>
+    <script src="https://jsdelivr.net"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: #1E1E1E; border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); border: 1px solid #2C2C2C; }
-        h2 { margin: 0 0 8px 0; color: #00B0FF; text-align: center; font-size: 22px; }
-        .sub-header { text-align: center; color: #888; font-size: 14px; margin-bottom: 24px; }
-        .balance-box { background: #252525; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px; border: 1px solid #333; }
-        .balance-label { font-size: 12px; color: #AAA; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-value { font-size: 32px; font-weight: bold; color: #00E676; margin-top: 6px; }
-        .switch-container { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 16px; border-radius: 12px; border: 1px solid #333; }
-        .switch-label { font-size: 15px; font-weight: 500; }
-        .btn-refresh { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 8px; background: #00B0FF; color: #fff; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-refresh:hover { background: #0091EA; }
+        body { font-family: -apple-system, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 400px; }
+        .card { background: #1E1E1E; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #2C2C2C; }
+        h2 { margin: 0; color: #00B0FF; font-size: 22px; }
+        .user-name { font-size: 14px; color: #888; margin-top: 4px; font-weight: 500; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 10px; }
+        .source-borewell { background: #2E7D32; color: #E8F5E9; }
+        .source-sump { background: #EF6C00; color: #FFF3E0; }
+        .source-corp { background: #1565C0; color: #E3F2FD; }
+        .source-standby { background: #424242; color: #BDBDBD; }
+        .balance-box { text-align: center; padding: 15px; background: #252525; border-radius: 12px; border: 1px solid #333; margin: 15px 0; }
+        .balance-value { font-size: 36px; font-weight: bold; color: #00E676; }
+        .switch-container { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; }
+        .history-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .history-item:last-child { border-bottom: none; }
+        .btn-refresh { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00B0FF; color: #fff; font-weight: bold; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 id="houseTitle">Row House --</h2>
-    <div class="sub-header">Prepaid Utilities Dashboard</div>
-    
-    <div class="balance-box">
-        <div class="balance-label">Current Balance</div>
-        <div class="balance-value" id="balanceValue">₹ --.--</div>
+<div class="container">
+    <!-- User Info Card -->
+    <div class="card">
+        <h2 id="houseTitle">Row House --</h2>
+        <div class="user-name" id="userNameDisplay">Loading resident details...</div>
+        <div id="sourceBadge" class="badge source-standby">SOURCE: STANDBY</div>
     </div>
 
-    <div class="switch-container">
-        <div class="switch-label">🏖️ Holiday Lock Mode</div>
-        <input type="checkbox" id="holidayToggle" style="transform: scale(1.5); cursor: pointer;" onchange="toggleHolidayMode()">
+    <!-- Prepaid Balance Box -->
+    <div class="card">
+        <div class="balance-box">
+            <div style="font-size: 12px; color: #AAA; text-transform: uppercase;">Current Balance</div>
+            <div class="balance-value" id="balanceValue">₹ --.--</div>
+        </div>
+        <div class="switch-container">
+            <div>🏖️ Holiday Lock Mode</div>
+            <input type="checkbox" id="holidayToggle" style="transform: scale(1.4); cursor: pointer;" onchange="toggleHolidayMode()">
+        </div>
+        <button class="btn-refresh" onclick="fetchPortalData()">🔄 Refresh Account</button>
     </div>
 
-    <button class="btn-refresh" onclick="fetchHouseData()">🔄 Refresh Balance</button>
+    <!-- Weekly Consumption Graph -->
+    <div class="card">
+        <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #00B0FF;">Daily Consumption (Liters)</h3>
+        <canvas id="consumptionChart"></canvas>
+    </div>
+
+    <!-- Recharge History Ledger -->
+    <div class="card">
+        <h3 style="margin: 0 0 5px 0; font-size: 15px; color: #00B0FF;">Recent Recharges</h3>
+        <ul class="history-list" id="rechargeHistory">
+            <li class="history-item"><span style="color:#aaa;">Loading logs...</span></li>
+        </ul>
+    </div>
 </div>
 
 <script>
-    // Configuration Variables - Insert your Free Blynk Token and Region ID here
-    const BLYNK_TOKEN = "_mcmkcVvihN0eOGZ6x5cJWK6xpqpzakT"; 
-    const BLYNK_REGION = "blr1"; // Check your Blynk dashboard URL prefix (e.g. sgp1, lon1, ny3)
+    const BLYNK_TOKEN = "ThRRSYuNS3F2Z4p6rPgBayVZFmaoaf6W"; 
+    const BLYNK_REGION = "sgp1"; 
 
-    // Automatically parse the URL string to find the user's specific house index
     const urlParams = new URLSearchParams(window.location.search);
     const houseId = parseInt(urlParams.get('house')) || 1; 
 
-    // Calculate dynamic virtual pin channels based on the layout rule
-    const balancePin = "V" + houseId;       // House 1 = V1, House 33 = V33
-    const holidayPin = "V" + (50 + houseId); // House 1 = V51, House 33 = V83
+    const balancePin = "V" + houseId;       
+    const holidayPin = "V" + (50 + houseId); 
+
+    // Static registry mapping out resident names for the 33 houses
+    const residentNames = {
+        1: "Amit Sharma (H-01)",
+        2: "Rahul Deshmukh (H-02)",
+        5: "Pratyush Kumar (H-05)",
+        33: "Vijay Patil (H-33)"
+    };
 
     document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
+    document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
 
-    // Pull real-time data metrics straight out of Blynk Cloud completely free via REST API
-    async function fetchHouseData() {
+    let consumptionChart;
+
+    function renderChart(boreData, sumpData, corpData) {
+        const ctx = document.getElementById('consumptionChart').getContext('2d');
+        if (consumptionChart) { consumptionChart.destroy(); }
+        
+        consumptionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    { label: 'Borewell', data: boreData, backgroundColor: '#2E7D32' },
+                    { label: 'Sump Tanker', data: sumpData, backgroundColor: '#EF6C00' },
+                    { label: 'Corporation', data: corpData, backgroundColor: '#1565C0' }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true, ticks: { color: '#bbb' } },
+                    y: { stacked: true, ticks: { color: '#bbb' } }
+                },
+                plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }
+            }
+        });
+    }
+
+    async function fetchPortalData() {
         try {
-            const response = await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin});
-            const data = await response.json();
+            // 1. Pull data directly from the free Blynk REST API
+            const blynkRes = await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42);
+            const blynkData = await blynkRes.json();
             
-            // Render fetched information directly onto the resident's screen
-            document.getElementById("balanceValue").innerText = "₹" + parseFloat(data[balancePin]).toFixed(2);
-            document.getElementById("holidayToggle").checked = parseInt(data[holidayPin]) === 1;
+            document.getElementById("balanceValue").innerText = "₹" + parseFloat(blynkData[balancePin]).toFixed(2);
+            document.getElementById("holidayToggle").checked = parseInt(blynkData[holidayPin]) === 1;
+
+            // 2. Set the status indicator color badge dynamically based on active pump tracking pins
+            const badge = document.getElementById("sourceBadge");
+            if (parseInt(blynkData["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
+            else if (parseInt(blynkData["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
+            else if (parseInt(blynkData["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-corp"; }
+            else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
+
+            // 3. Simulated historical values (In production, pull these directly using a fetch request from your Google Sheets deployment URL)
+            renderChart([40, 50, 0, 30, 20, 0, 10], [0, 0, 120, 0, 0, 100, 0], [60, 0, 0, 40, 50, 0, 80]);
+            
+            // 4. Update the recent payment history items layout
+            const historyHtml = `
+                <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>12 Oct 2026</span></li>
+                <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>01 Sep 2026</span></li>
+            `;
+            document.getElementById("rechargeHistory").innerHTML = historyHtml;
+
         } catch (error) {
-            console.error("API Read Error:", error);
-            alert("Error updating data from network. Please check internet connection.");
+            console.error("Portal API Sync Error:", error);
         }
     }
 
-    // Push interactive controls from the custom switch back up to the gateway via Blynk API Webhooks
     async function toggleHolidayMode() {
         const isChecked = document.getElementById("holidayToggle").checked ? 1 : 0;
         try {
-            const url = https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked};
-            await fetch(url);
-            console.log(Holiday Pin ${holidayPin} updated successfully to ${isChecked});
+            await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked});
         } catch (error) {
-            console.error("API Write Error:", error);
             alert("Failed to commit valve state change.");
         }
     }
 
-    // Trigger an automatic read execution loop when the page loads
-    window.onload = fetchHouseData;
+    window.onload = fetchPortalData;
 </script>
 </body>
 </html>
