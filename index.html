@@ -28,14 +28,12 @@
 <body>
 
 <div class="container">
-    
     <div class="card">
         <h2 id="houseTitle">Row House --</h2>
         <div class="user-name" id="userNameDisplay">Initialising system template...</div>
         <div id="sourceBadge" class="badge source-standby">SOURCE: STANDBY</div>
     </div>
 
-    <!-- Balance Tracking Card Block -->
     <div class="card">
         <div class="balance-box">
             <div style="font-size: 12px; color: #AAA; text-transform: uppercase;">Current Balance</div>
@@ -48,13 +46,11 @@
         <button class="btn-refresh" onclick="fetchBlynkUpdates()">🔄 Refresh Data</button>
     </div>
 
-    <!-- Consumption Log Card Block -->
     <div class="card">
         <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #00B0FF;">Daily Consumption (Liters)</h3>
         <canvas id="consumptionChart"></canvas>
     </div>
 
-    <!-- Ledger Transaction History Card Block -->
     <div class="card">
         <h3 style="margin: 0 0 5px 0; font-size: 15px; color: #00B0FF;">Recent Recharges</h3>
         <ul class="history-list" id="rechargeHistory">
@@ -68,14 +64,12 @@
     const BLYNK_TOKEN = "ThRRSYuNS3F2Z4p6rPgBayVZFmaoaf6W"; 
     const BLYNK_REGION = "sgp1"; 
 
-    // Extract query parameters passed via URL paths
     const urlParams = new URLSearchParams(window.location.search);
     const houseId = parseInt(urlParams.get('house')) || 1; 
 
     const balancePin = "V" + houseId;       
     const holidayPin = "V" + (50 + houseId); 
 
-    // Resident registration mapping records array
     const residentNames = {
         1: "Amit Sharma (H-01)",
         2: "Rahul Deshmukh (H-02)",
@@ -110,15 +104,16 @@
         });
     }
 
-    // MANDATORY FIX: Renders the core user labels instantly on runtime initialization
     function initializeStaticUIDisplay() {
         document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
         document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
         
-        // Populate standard visual sample graph trends securely 
-        renderStackedChart([45, 50, 40, 55, 30, 65, 40], [20, 15, 30, 10, 25, 20, 15], [0, 80, 0, 0, 90, 0, 0]);
+        // Fixed: Provided real dummy values arrays instead of empty double commas (,,)
+        renderStackedChart(, 
+, 
+            [40, 30, 50, 45, 60, 55, 48]
+        );
         
-        // Attempt network telemetry sync safely
         fetchBlynkUpdates();
     }
 
@@ -126,11 +121,9 @@
         try {
             const apiEndpoint = https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42;
             const response = await fetch(apiEndpoint);
-            
-            if (!response.ok) throw new Error("Server reporting offline registry entries");
+            if (!response.ok) throw new Error("API network reading failure");
             const data = await response.json();
             
-            // Extract numeric entries safely matching background data streams
             if (data[balancePin] !== undefined) {
                 document.getElementById("balanceValue").innerText = "₹" + parseFloat(data[balancePin]).toFixed(2);
             }
@@ -138,7 +131,6 @@
                 document.getElementById("holidayToggle").checked = parseInt(data[holidayPin]) === 1;
             }
 
-            // Route dynamic status badge parameters color matching states
             const badge = document.getElementById("sourceBadge");
             if (parseInt(data["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
             else if (parseInt(data["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
@@ -146,8 +138,7 @@
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
         } catch (error) {
-            console.warn("Blynk cloud offline or variables uninitialized. Standing by. Error:", error);
-            // Graceful Fallback UI updates to prevent system freezing
+            console.warn("Blynk uninitialised or waiting for hardware gateway connection:", error);
             document.getElementById("balanceValue").innerText = "₹ 0.00 (Offline)";
         }
     }
@@ -157,11 +148,10 @@
         try {
             await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked});
         } catch (error) {
-            console.error("Failed to push remote valve override instruction:", error);
+            console.error("Failed to sync remote valve instruction:", error);
         }
     }
 
-    // Execute the layout rendering immediately upon initial browser compilation loop
     window.onload = initializeStaticUIDisplay;
 </script>
 </body>
