@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prepaid Water Smart Portal</title>
-    <script src="https://jsdelivr.net"></script>
+    <!-- Core UI scripts container layer -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 15px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 400px; }
@@ -28,14 +29,14 @@
 <body>
 
 <div class="container">
-    <!-- User Profile Card -->
+    <!-- User Info Card -->
     <div class="card">
-        <h2 id="houseTitle">Row House --</h2>
-        <div class="user-name" id="userNameDisplay">Initialising system template...</div>
-        <div id="sourceBadge" class="badge source-standby">SOURCE: STANDBY</div>
+        <h2 id="houseTitle">Row House 01</h2>
+        <div class="user-name" id="userNameDisplay">Amit Sharma (H-01)</div>
+        <div id="sourceBadge" class="badge source-standby">SOURCE: AWAITING INTERNET</div>
     </div>
 
-    <!-- Prepaid Balance Tracker Box -->
+    <!-- Balance Tracking Card -->
     <div class="card">
         <div class="balance-box">
             <div style="font-size: 12px; color: #AAA; text-transform: uppercase;">Current Balance</div>
@@ -45,16 +46,16 @@
             <div>🏖️ Holiday Lock Mode</div>
             <input type="checkbox" id="holidayToggle" style="transform: scale(1.4); cursor: pointer;" onchange="toggleHolidayMode()">
         </div>
-        <button class="btn-refresh" onclick="fetchBlynkUpdates()">🔄 Refresh Data</button>
+        <button class="btn-refresh" onclick="fetchBlynkUpdates()">🔄 Refresh Account</button>
     </div>
 
-    <!-- Daily Water Bar Chart Graphic Container -->
-    <div class="card">
+    <!-- Weekly Consumption Graph Frame -->
+    <div class="card" style="position: relative; min-height: 220px;">
         <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #00B0FF;">Daily Consumption (Liters)</h3>
         <canvas id="consumptionChart"></canvas>
     </div>
 
-    <!-- Recent Payments Box -->
+    <!-- Recharge Ledger -->
     <div class="card">
         <h3 style="margin: 0 0 5px 0; font-size: 15px; color: #00B0FF;">Recent Recharges</h3>
         <ul class="history-list" id="rechargeHistory">
@@ -68,12 +69,14 @@
     const BLYNK_TOKEN = "ThRRSYuNS3F2Z4p6rPgBayVZFmaoaf6W"; 
     const BLYNK_REGION = "sgp1"; 
 
+    // 1. Immediately isolate user link query parameter values
     const urlParams = new URLSearchParams(window.location.search);
     const houseId = parseInt(urlParams.get('house')) || 1; 
 
     const balancePin = "V" + houseId;       
     const holidayPin = "V" + (50 + houseId); 
 
+    // Resident local data store mapping index
     const residentNames = {
         1: "Amit Sharma (H-01)",
         2: "Rahul Deshmukh (H-02)",
@@ -81,53 +84,41 @@
         33: "Vijay Patil (H-33)"
     };
 
-    let consumptionChart;
+    // 2. HARD-FIX: Swap labels to show house details instantly before executing network checks
+    document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
+    document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
 
-    function renderStackedChart(boreData, sumpData, corpData) {
-        const ctx = document.getElementById('consumptionChart').getContext('2d');
-        if (consumptionChart) { consumptionChart.destroy(); }
-        
-        consumptionChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [
-                    { label: 'Borewell', data: boreData, backgroundColor: '#2E7D32' },
-                    { label: 'Sump Tanker', data: sumpData, backgroundColor: '#EF6C00' },
-                    { label: 'Corporation', data: corpData, backgroundColor: '#1565C0' }
-                ]
+    // 3. Render complete charts layout instantly using valid, safe numeric dummy records arrays
+    const ctx = document.getElementById('consumptionChart').getContext('2d');
+    const consumptionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [
+                { label: 'Borewell', data: [120, 140, 110, 130, 95, 150, 115], backgroundColor: '#2E7D32' },
+                { label: 'Sump Tanker', data: [40, 0, 55, 20, 80, 0, 30], backgroundColor: '#EF6C00' },
+                { label: 'Corporation', data: [0, 80, 0, 90, 0, 100, 0], backgroundColor: '#1565C0' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                x: { stacked: true, ticks: { color: '#bbb' } },
+                y: { stacked: true, ticks: { color: '#bbb' } }
             },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { stacked: true, ticks: { color: '#bbb' } },
-                    y: { stacked: true, ticks: { color: '#bbb' } }
-                },
-                plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }
-            }
-        });
-    }
+            plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }
+        }
+    });
 
-    function initializeStaticUIDisplay() {
-        // Render the core user layout labels instantly
-        document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
-        document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
-        
-        // FIXED: Replaced empty parameters with actual mock array values to ensure compilation success
-        renderStackedChart(, 
-, 
-            [100, 110, 95, 105, 120, 85, 115]
-        );
-        
-        fetchBlynkUpdates();
-    }
-
+    // 4. Safe Asynchronous System updates loop function
     async function fetchBlynkUpdates() {
         try {
             const apiEndpoint = https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42;
             const response = await fetch(apiEndpoint);
             
-            if (!response.ok) throw new Error("Blynk API connection status error");
+            // If the hardware is sleeping or uninitialized, catch it safely without freezing the interface
+            if (!response.ok) throw new Error("Blynk core uninitialised");
             const data = await response.json();
             
             if (data[balancePin] !== undefined) {
@@ -147,8 +138,10 @@
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
         } catch (error) {
-            console.warn("Blynk sync standing by. Awaiting live gateway data link fields. Message:", error);
-            document.getElementById("balanceValue").innerText = "₹ --.-- (Awaiting Hub)";
+            console.warn("Blynk server uninitialised or waiting for hardware hub link configuration fields. Message:", error);
+            document.getElementById("balanceValue").innerText = "₹ --.-- (Hub Offline)";
+            document.getElementById("sourceBadge").innerText = "SOURCE: STANDBY";
+            document.getElementById("sourceBadge").className = "badge source-standby";
         }
     }
 
@@ -157,11 +150,12 @@
         try {
             await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked});
         } catch (error) {
-            console.error("Failed to update blynk register state:", error);
+            console.error("Failed to commit instruction via cloud API network:", error);
         }
     }
 
-    window.onload = initializeStaticUIDisplay;
+    // Trigger Blynk network syncing routine safely in the background after page layout initialization
+    window.onload = fetchBlynkUpdates;
 </script>
 </body>
 </html>
