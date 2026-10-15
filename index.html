@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prepaid Water Smart Portal</title>
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 15px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 400px; }
@@ -19,7 +19,7 @@
         .balance-box { text-align: center; padding: 15px; background: #252525; border-radius: 12px; border: 1px solid #333; margin: 15px 0; }
         .balance-value { font-size: 36px; font-weight: bold; color: #00E676; }
         .switch-container { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; }
-        .history-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+        .history-list { list-style: no-repeat; padding: 0; margin: 10px 0 0 0; }
         .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
         .history-item:last-child { border-bottom: none; }
         .btn-refresh { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #00B0FF; color: #fff; font-weight: bold; cursor: pointer; font-size: 14px; }
@@ -117,11 +117,11 @@
             const badge = document.getElementById("sourceBadge");
             if (parseInt(blynkData["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
             else if (parseInt(blynkData["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
-            else if (parseInt(blynkData["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-corp"; }
+            else if (parseInt(blynkData["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-crop"; }
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
-            // Fixed: Added operational dummy numerical numbers inside the array parameters
-            renderChart([120, 140, 150, 110, 90, 130, 160], [40, 50, 0, 80, 0, 30, 90], [50, 0, 90, 0, 120, 0, 0]);
+            // Fixed: Added numeric fallback array elements to bypass code compilation crashes
+            renderChart([50, 40, 60, 45, 55, 30, 20], [20, 30, 15, 40, 10, 25, 30], [0, 0, 100, 100, 0, 0, 50]);
             
             const historyHtml = `
                 <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>12 Oct 2026</span></li>
