@@ -43,7 +43,7 @@
         </div>
         <div class="switch-container">
             <div>🏖️ Holiday Lock Mode</div>
-            <input type="checkbox" id="holidayToggle" style="transform: scale(1.4); cursor: pointer;" onchange="toggleHolidayMode()">
+            <input type="checkbox" id="holidayToggle" style="transform: scale(1.4); pointer-events: auto;" onchange="toggleHolidayMode()">
         </div>
         <button class="btn-refresh" onclick="fetchBlynkUpdates()">🔄 Refresh Data</button>
     </div>
@@ -109,12 +109,12 @@
     }
 
     function initializeStaticUIDisplay() {
-        // This renders the critical house text elements instantly on page boot
+        // Render the core user layout labels instantly
         document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
         document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
         
-        // Fixed: Inserted clean dummy arrays to prevent script execution compilation crashes
-        renderStackedChart([15, 20, 18, 22, 14, 25, 30], [5, 10, 0, 8, 12, 4, 15], [30, 25, 40, 20, 35, 30, 28]);
+        // FIXED: Replaced empty brackets with actual numerical placeholders to stop browser syntax crashes
+        renderStackedChart([120, 150, 180, 90, 200, 160, 140], [80, 50, 40, 100, 60, 90, 70], [200, 210, 190, 220, 250, 240, 230]);
         
         fetchBlynkUpdates();
     }
@@ -124,8 +124,7 @@
             const apiEndpoint = https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42;
             const response = await fetch(apiEndpoint);
             
-            // If the ESP32 Hub is offline or powered down, the script catches it safely here
-            if (!response.ok) throw new Error("Hardware cloud data not populated yet.");
+            if (!response.ok) throw new Error("Blynk API connection status error");
             const data = await response.json();
             
             if (data[balancePin] !== undefined) {
@@ -146,7 +145,6 @@
 
         } catch (error) {
             console.warn("Blynk sync standing by. Awaiting live gateway data link fields. Message:", error);
-            // Elegant placeholder fallback when ESP32 is turned off
             document.getElementById("balanceValue").innerText = "₹ --.-- (Awaiting Hub)";
         }
     }
