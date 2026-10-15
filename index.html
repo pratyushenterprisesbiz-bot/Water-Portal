@@ -28,14 +28,12 @@
 <body>
 
 <div class="container">
-    <!-- User Info Card -->
     <div class="card">
         <h2 id="houseTitle">Row House --</h2>
         <div class="user-name" id="userNameDisplay">Loading resident details...</div>
         <div id="sourceBadge" class="badge source-standby">SOURCE: STANDBY</div>
     </div>
 
-    <!-- Prepaid Balance Box -->
     <div class="card">
         <div class="balance-box">
             <div style="font-size: 12px; color: #AAA; text-transform: uppercase;">Current Balance</div>
@@ -48,13 +46,11 @@
         <button class="btn-refresh" onclick="fetchPortalData()">🔄 Refresh Account</button>
     </div>
 
-    <!-- Weekly Consumption Graph -->
     <div class="card">
         <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #00B0FF;">Daily Consumption (Liters)</h3>
         <canvas id="consumptionChart"></canvas>
     </div>
 
-    <!-- Recharge History Ledger -->
     <div class="card">
         <h3 style="margin: 0 0 5px 0; font-size: 15px; color: #00B0FF;">Recent Recharges</h3>
         <ul class="history-list" id="rechargeHistory">
@@ -73,7 +69,6 @@
     const balancePin = "V" + houseId;       
     const holidayPin = "V" + (50 + houseId); 
 
-    // Static registry mapping out resident names for the 33 houses
     const residentNames = {
         1: "Amit Sharma (H-01)",
         2: "Rahul Deshmukh (H-02)",
@@ -110,26 +105,23 @@
 
     async function fetchPortalData() {
         try {
-            // Update labels immediately on script compilation
             document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
             document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
 
-            // Pull parameters from Blynk APIs
             const blynkRes = await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42);
             const blynkData = await blynkRes.json();
             
             document.getElementById("balanceValue").innerText = "₹" + parseFloat(blynkData[balancePin]).toFixed(2);
             document.getElementById("holidayToggle").checked = parseInt(blynkData[holidayPin]) === 1;
 
-            // Update color source badge status indicator registers
             const badge = document.getElementById("sourceBadge");
             if (parseInt(blynkData["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
             else if (parseInt(blynkData["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
             else if (parseInt(blynkData["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-corp"; }
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
-            // Clean baseline historical charts mock arrays (Fixed empty data syntax crash)
-            renderChart([120, 150, 180, 90, 200, 150, 110], [50, 0, 70, 0, 40, 90, 0], [0, 80, 0, 110, 0, 0, 95]);
+            // Fixed: Added operational dummy numerical numbers inside the array parameters
+            renderChart([120, 140, 150, 110, 90, 130, 160], [40, 50, 0, 80, 0, 30, 90], [50, 0, 90, 0, 120, 0, 0]);
             
             const historyHtml = `
                 <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>12 Oct 2026</span></li>
