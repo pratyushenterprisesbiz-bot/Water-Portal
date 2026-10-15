@@ -108,11 +108,8 @@
         document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
         document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
         
-        // Fixed: Provided real dummy values arrays instead of empty double commas (,,)
-        renderStackedChart(, 
-, 
-            [40, 30, 50, 45, 60, 55, 48]
-        );
+        // FIXED: Replaced uninitialised arrays with valid mock array points to bypass compiler freezing
+        renderStackedChart([120, 150, 180, 90, 200, 160, 140], [40, 80, 0, 50, 30, 90, 60], [100, 0, 150, 120, 0, 110, 95]);
         
         fetchBlynkUpdates();
     }
@@ -121,12 +118,17 @@
         try {
             const apiEndpoint = https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42;
             const response = await fetch(apiEndpoint);
-            if (!response.ok) throw new Error("API network reading failure");
+            
+            // If Blynk API fields are empty or hardware is uninitialised, gracefully catch it without freezing
+            if (!response.ok) throw new Error("Hardware nodes offline or uninitialised");
             const data = await response.json();
             
             if (data[balancePin] !== undefined) {
                 document.getElementById("balanceValue").innerText = "₹" + parseFloat(data[balancePin]).toFixed(2);
+            } else {
+                document.getElementById("balanceValue").innerText = "₹ 0.00";
             }
+            
             if (data[holidayPin] !== undefined) {
                 document.getElementById("holidayToggle").checked = parseInt(data[holidayPin]) === 1;
             }
@@ -138,8 +140,8 @@
             else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
 
         } catch (error) {
-            console.warn("Blynk uninitialised or waiting for hardware gateway connection:", error);
-            document.getElementById("balanceValue").innerText = "₹ 0.00 (Offline)";
+            console.warn("Blynk sync standing by. Awaiting live gateway data link fields. Message:", error);
+            document.getElementById("balanceValue").innerText = "₹ --.-- (Standby)";
         }
     }
 
@@ -148,7 +150,7 @@
         try {
             await fetch(https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked});
         } catch (error) {
-            console.error("Failed to sync remote valve instruction:", error);
+            console.error("Failed to commit instruction over cloud path:", error);
         }
     }
 
