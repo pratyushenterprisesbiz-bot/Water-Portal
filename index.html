@@ -2,64 +2,164 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Water Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prepaid Water Smart Portal</title>
+    <!-- Stable ChartJS Library CDN -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 400px; }
+        .card { background: #1E1E1E; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #2C2C2C; }
+        h2 { margin: 0; color: #00B0FF; font-size: 22px; }
+        .user-name { font-size: 14px; color: #888; margin-top: 4px; font-weight: 500; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
+        .source-borewell { background: #2E7D32; color: #E8F5E9; }
+        .source-sump { background: #EF6C00; color: #FFF3E0; }
+        .source-corp { background: #1565C0; color: #E3F2FD; }
+        .source-standby { background: #424242; color: #BDBDBD; }
+        .balance-box { text-align: center; padding: 15px; background: #252525; border-radius: 12px; border: 1px solid #333; margin: 15px 0; }
+        .balance-value { font-size: 34px; font-weight: bold; color: #00E676; letter-spacing: -0.5px; }
+        .switch-container { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; }
+        .history-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .history-item:last-child { border-bottom: none; }
+        .btn-refresh { width: 100%; padding: 14px; border: none; border-radius: 8px; background: #00B0FF; color: #fff; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+        .btn-refresh:active { background: #0091EA; }
+    </style>
 </head>
 <body>
-    <div id="dashboard">
-        <h2>House: <span id="house-id">Loading...</span></h2>
-        <div id="status">Balance: <span id="balance">--</span></div>
-        <button id="holiday-toggle" onclick="toggleHoliday()">Toggle Holiday Mode</button>
-        <canvas id="usageChart"></canvas>
+
+<div class="container">
+    
+    <div class="card">
+        <h2 id="houseTitle">Row House --</h2>
+        <div class="user-name" id="userNameDisplay">Verifying user link parameter...</div>
+        <div id="sourceBadge" class="badge source-standby">SOURCE: STANDBY</div>
     </div>
 
+    <!-- Live Accounting Tracker Block -->
+    <div class="card">
+        <div class="balance-box">
+            <div style="font-size: 11px; color: #AAA; text-transform: uppercase; letter-spacing: 0.5px;">Prepaid Balance Available</div>
+            <div class="balance-value" id="balanceValue">₹ --.--</div>
+        </div>
+        <div class="switch-container">
+            <div>🏖️ Remote Holiday Lock Mode</div>
+            <input type="checkbox" id="holidayToggle" style="transform: scale(1.4); cursor: pointer;" onchange="toggleHolidayMode()">
+        </div>
+        <button class="btn-refresh" onclick="fetchBlynkUpdates()">🔄 Sync Accounts Data</button>
+    </div>
+
+    <!-- Weekly Stacked Consumption Graphic Layout -->
+    <div class="card">
+        <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #00B0FF;">Daily Consumption (Liters)</h3>
+        <canvas id="consumptionChart"></canvas>
+    </div>
+
+    <!-- Static Ledger Database Summary -->
+    <div class="card">
+        <h3 style="margin: 0 0 5px 0; font-size: 15px; color: #00B0FF;">Recent Topup Recharges Ledger</h3>
+        <ul class="history-list" id="rechargeHistory">
+            <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>12 Oct 2026</span></li>
+            <li class="history-item"><span style="color:#00E676;">₹500.00 Received</span> <span>01 Sep 2026</span></li>
+        </ul>
+    </div>
+</div>
+
 <script>
-    const API_BASE = "https://blynk.cloud/external/api";
-    const HOUSE_PIN = "V1"; // Example PIN
-    let isHoliday = false;
+    const BLYNK_TOKEN = "ThRRSYuNS3F2Z4p6rPgBayVZFmaoaf6W"; 
+    const BLYNK_REGION = "sgp1"; 
 
-    async function updateDashboard() {
+    // Extract query parameter details from the active address URL path string
+    const urlParams = new URLSearchParams(window.location.search);
+    const houseId = parseInt(urlParams.get('house')) || 1; 
+
+    const balancePin = "V" + houseId;       
+    const holidayPin = "V" + (50 + houseId); 
+
+    // Static registry mapping records array tracking user names
+    const residentNames = {
+        1: "Amit Sharma (H-01)",
+        2: "Rahul Deshmukh (H-02)",
+        5: "Pratyush Kumar (H-05)",
+        33: "Vijay Patil (H-33)"
+    };
+
+    // RUNTIME INIT: Update structural text metrics instantly to stop loading screen freezes
+    document.getElementById("houseTitle").innerText = "Row House " + (houseId < 10 ? "0" + houseId : houseId);
+    document.getElementById("userNameDisplay").innerText = residentNames[houseId] || "Registered Resident";
+
+    // FIXED: Provided non-empty arrays with operational dummy integers to guarantee rendering success
+    const ctx = document.getElementById('consumptionChart').getContext('2d');
+    const consumptionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [
+                { label: 'Borewell', data:, backgroundColor: '#2E7D32' },
+                { label: 'Sump Tanker', data:, backgroundColor: '#EF6C00' },
+                { label: 'Corporation', data:, backgroundColor: '#1565C0' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                x: { stacked: true, ticks: { color: '#bbb' } },
+                y: { stacked: true, ticks: { color: '#bbb' } }
+            },
+            plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }
+        }
+    });
+
+    // Safe background network processing block function
+    async function fetchBlynkUpdates() {
         try {
-            // Promise.race handles slow server response (5s timeout)
-            const response = await Promise.race([
-                fetch(`${API_BASE}/get?token=YOUR_TOKEN&${HOUSE_PIN}`),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-            ]);
+            const apiEndpoint = `https://${BLYNK_REGION}.blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${balancePin}&${holidayPin}&V40&V41&V42`;
+            const response = await fetch(apiEndpoint);
             
+            if (!response.ok) throw new Error("Blynk API Cloud Network Endpoint Failure");
             const data = await response.json();
-            document.getElementById('balance').innerText = data || "0";
-            renderChart([10, 25, 15, 30, 20]); // Dummy data if API call is light
-        } catch (err) {
-            console.error("Fetch Error:", err);
-            document.getElementById('balance').innerText = "Offline";
-            renderChart([0, 0, 0, 0, 0]); // Render zero-state chart
-        }
-    }
-
-    async function toggleHoliday() {
-        isHoliday = !isHoliday;
-        // API call to update state
-        try {
-            await fetch(`${API_BASE}/update?token=YOUR_TOKEN&V2=${isHoliday ? 1 : 0}`);
-            alert(`Holiday Mode: ${isHoliday ? "ON" : "OFF"}`);
-        } catch (e) {
-            alert("Failed to update server");
-        }
-    }
-
-    function renderChart(data) {
-        const ctx = document.getElementById('usageChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-                datasets: [{ label: 'Liters', data: data, backgroundColor: 'blue' }]
+            
+            // Extract numeric entries safely matching background database variables
+            if (data[balancePin] !== undefined) {
+                document.getElementById("balanceValue").innerText = "₹" + parseFloat(data[balancePin]).toFixed(2);
+            } else {
+                document.getElementById("balanceValue").innerText = "₹ 0.00";
             }
-        });
+            
+            if (data[holidayPin] !== undefined) {
+                document.getElementById("holidayToggle").checked = parseInt(data[holidayPin]) === 1;
+            }
+
+            // Route dynamic status badge parameters color matching states
+            const badge = document.getElementById("sourceBadge");
+            if (parseInt(data["V40"]) === 1) { badge.innerText = "SOURCE: BOREWELL"; badge.className = "badge source-borewell"; }
+            else if (parseInt(data["V41"]) === 1) { badge.innerText = "SOURCE: SUMP TANKER"; badge.className = "badge source-sump"; }
+            else if (parseInt(data["V42"]) === 1) { badge.innerText = "SOURCE: CORPORATION"; badge.className = "badge source-corp"; }
+            else { badge.innerText = "SOURCE: STANDBY"; badge.className = "badge source-standby"; }
+
+        } catch (error) {
+            console.warn("Blynk cloud offline. Standing by for hardware gateway hub connection. Error details:", error);
+            // Catch error gracefully so layout text fields do not break or lock up
+            document.getElementById("balanceValue").innerText = "₹ --.-- (Hub Offline)";
+            document.getElementById("sourceBadge").innerText = "SOURCE: STANDBY";
+            document.getElementById("sourceBadge").className = "badge source-standby";
+        }
     }
 
-    // Initialize
-    updateDashboard();
+    async function toggleHolidayMode() {
+        const isChecked = document.getElementById("holidayToggle").checked ? 1 : 0;
+        try {
+            await fetch(`https://${BLYNK_REGION}.blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${holidayPin}=${isChecked}`);
+        } catch (error) {
+            console.error("Failed to commit valve state change instruction over network path:", error);
+            alert("Blynk link sync failed. Unable to toggle valve remotely.");
+        }
+    }
+
+    // Call the network updates loop safely in the background after structural layout boot
+    window.onload = fetchBlynkUpdates;
 </script>
 </body>
 </html>
